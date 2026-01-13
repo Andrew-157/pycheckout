@@ -1,4 +1,0 @@
-# python-related files to ignore
-__pycache__/*
-venv/*
-textual_*
