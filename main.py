@@ -1,6 +1,11 @@
 from git import Repo
 
-repo = Repo(".")
+repo = Repo(path=".")
 
-print(repo.__dict__)
-print(repo.is_dirty())
+
+for b in repo.branches:
+    if b == repo.active_branch:
+        print(f"Active branch: {b}")
+    else:
+        print(f"Non-active branch: {b}")
+        repo.delete_head(b)
