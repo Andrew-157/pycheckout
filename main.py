@@ -1,6 +1,6 @@
-def main():
-    print("Hello from git-tui!")
+from git import Repo
 
+repo = Repo(".")
 
-if __name__ == "__main__":
-    main()
+print(repo.__dict__)
+print(repo.is_dirty())
