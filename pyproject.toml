@@ -6,4 +6,5 @@ readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
     "gitpython>=3.1.46",
+    "rich>=14.2.0",
 ]
