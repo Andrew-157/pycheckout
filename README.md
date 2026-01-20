@@ -8,4 +8,5 @@ so, do this:
 
 ```python
 uv run python -m rich
+uv run main.py
 ```
