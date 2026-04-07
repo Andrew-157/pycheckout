@@ -15,7 +15,7 @@ class GitTui:
     def __init__(self, repo_path: str | pathlib.Path = "."):
         self.repo = self.__init_repo(repo_path=repo_path)
 
-    def __init_repo(self, repo_path: str | pathlib.Path) -> Repository:
+    def _init_repo(self, repo_path: str | pathlib.Path) -> Repository:
         try:
             # When directory is not a git repo: _pygit2.GitError: Repository not found at /home
             # When directory doesn't exist: _pygit2.GitError: Repository not found at /home/bumbum
