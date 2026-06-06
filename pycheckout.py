@@ -15,26 +15,22 @@ class PyCheckoutError(Exception):
 
 
 class PyCheckout:
-    """Pych."""
-
     def __init__(
         self,
         repo_path: str | Path | None = None,
         use_tui: bool = True
     ):
-        """Init."""
         self.repository = repo_path
         self.use_tui = use_tui
 
     @property
     def repository(self) -> str | None:
-        """Repo."""
         if self._repository:
             return str(Path(self._repository.path).parent.absolute())
         return None
 
     @repository.setter
-    def repository(self, repo_path: str | None):
+    def repository(self, repo_path: str | Path | None):
         if not repo_path:
             self._repository = None
         else:
@@ -45,14 +41,12 @@ class PyCheckout:
 
     @property
     def local_branches(self) -> list[str]:
-        """Get local branches."""
         if not self._repository:
             raise PyCheckoutError('Cannot list local branches without initialized repository')
         return list(self._repository.branches.local)
 
     @property
     def checked_out_branch(self) -> str:
-        """Checked out."""
         if not self._repository:
             raise PyCheckoutError('Cannot get currently checked out branch without initialized repository')
         return self._repository.head.shorthand
@@ -81,7 +75,6 @@ class PyCheckout:
             sys.exit(0)
 
     def checkout(self, branch_name: str | None = None):
-        """Checkout."""
         if not self._repository:
             raise PyCheckoutError('Cannot checkout to a branch without iniatialized repository')
         if not branch_name and self.use_tui is False:
@@ -96,7 +89,6 @@ class PyCheckout:
         self._repository.checkout(branch_obj)
 
     def delete_branch(self, branch_name: str | None = None):
-        """Delete."""
         if not self._repository:
             raise PyCheckoutError('Cannot delete branch without initialized repository')
         if not branch_name and self.use_tui is False:
@@ -131,7 +123,6 @@ if __name__ == "__main__":
             )
         ] = False,
     ):
-        """Do stuff."""
         try:
             pychkt = PyCheckout(
                 repo_path=Path.cwd(),
