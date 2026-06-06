@@ -1,4 +1,6 @@
+from typing import Annotated
 import sys
+import os
 from pathlib import Path
 
 from pygit2 import init_repository
@@ -6,6 +8,7 @@ from pygit2.enums import BranchType
 from prompt_toolkit.shortcuts import choice
 from prompt_toolkit.formatted_text import HTML
 from prompt_toolkit.styles import Style
+from rich.console import Console
 
 
 class PyCheckoutError(Exception):
@@ -102,3 +105,41 @@ class PyCheckout:
         if not branch_obj:
             raise PyCheckoutError(f'Branch "{branch_name}" was not found locally for the repository "{self.repository}"')
         branch_obj.delete()
+
+
+if __name__ == "__main__":
+    import typer
+    app = typer.Typer()
+    @app.command()
+    def main(
+        branch_name: str | None = typer.Argument(
+            default = None,
+            help = "Branch to checkout to/delete",
+        ),
+        delete: Annotated[
+            bool,
+            typer.Option(
+                "--delete",
+                "-d",
+                help = "If provided - selected branch will be deleted",
+            )
+        ] = False,
+    ):
+        try:
+            pychkt = PyCheckout(
+                repo_path=os.getcwd(),
+                use_tui=True,
+            )
+            if delete:
+                pychkt.delete_branch(
+                    branch_name=branch_name,
+                )
+            else:
+                pychkt.checkout(
+                    branch_name=branch_name,
+                )
+        except Exception as exc:
+            console = Console()
+            console.print(f"[bold red]{exc}[/bold red]")
+            sys.exit(1)
+    app()
