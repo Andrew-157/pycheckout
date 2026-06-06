@@ -1,5 +1,5 @@
 [project]
-name = "git-tui"
+name = "pycheckout"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
@@ -7,6 +7,7 @@ requires-python = ">=3.14"
 dependencies = [
     "prompt-toolkit>=3.0.52",
     "pygit2>=1.19.2",
+    "rich>=15.0.0",
     "typer>=0.26.7",
 ]
 
@@ -60,3 +61,7 @@ exclude = [
     ".git/**",
     "tests/**",
 ]
+
+# run `uv install .`
+[project.scripts]
+pycheckout = "pycheckout:cli"

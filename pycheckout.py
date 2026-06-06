@@ -106,8 +106,7 @@ class PyCheckout:
             raise PyCheckoutError(f'Branch "{branch_name}" was not found locally for the repository "{self.repository}"')
         branch_obj.delete()
 
-
-if __name__ == "__main__":
+def cli():
     import typer
     app = typer.Typer()
     @app.command()
@@ -143,3 +142,7 @@ if __name__ == "__main__":
             console.print(f"[bold red]{exc}[/bold red]")
             sys.exit(1)
     app()
+
+
+if __name__ == "__main__":
+    cli()
