@@ -1,32 +1,34 @@
-from typing import Annotated
 import sys
-import os
 from pathlib import Path
+from typing import Annotated
 
+from prompt_toolkit.formatted_text import HTML
+from prompt_toolkit.shortcuts import choice
+from prompt_toolkit.styles import Style
 from pygit2 import init_repository
 from pygit2.enums import BranchType
-from prompt_toolkit.shortcuts import choice
-from prompt_toolkit.formatted_text import HTML
-from prompt_toolkit.styles import Style
 from rich.console import Console
 
 
 class PyCheckoutError(Exception):
-    """
-    Exception to be raised by PyCheckout class
-    """
+    """Exception to be raised by PyCheckout class."""
+
 
 class PyCheckout:
+    """Pych."""
+
     def __init__(
         self,
-        repo_path: str | None = None,
+        repo_path: str | Path | None = None,
         use_tui: bool = True
     ):
+        """Init."""
         self.repository = repo_path
         self.use_tui = use_tui
 
     @property
     def repository(self) -> str | None:
+        """Repo."""
         if self._repository:
             return str(Path(self._repository.path).parent.absolute())
         return None
@@ -43,12 +45,14 @@ class PyCheckout:
 
     @property
     def local_branches(self) -> list[str]:
+        """Get local branches."""
         if not self._repository:
             raise PyCheckoutError('Cannot list local branches without initialized repository')
         return list(self._repository.branches.local)
 
     @property
     def checked_out_branch(self) -> str:
+        """Checked out."""
         if not self._repository:
             raise PyCheckoutError('Cannot get currently checked out branch without initialized repository')
         return self._repository.head.shorthand
@@ -77,6 +81,7 @@ class PyCheckout:
             sys.exit(0)
 
     def checkout(self, branch_name: str | None = None):
+        """Checkout."""
         if not self._repository:
             raise PyCheckoutError('Cannot checkout to a branch without iniatialized repository')
         if not branch_name and self.use_tui is False:
@@ -91,6 +96,7 @@ class PyCheckout:
         self._repository.checkout(branch_obj)
 
     def delete_branch(self, branch_name: str | None = None):
+        """Delete."""
         if not self._repository:
             raise PyCheckoutError('Cannot delete branch without initialized repository')
         if not branch_name and self.use_tui is False:
@@ -125,9 +131,10 @@ if __name__ == "__main__":
             )
         ] = False,
     ):
+        """Do stuff."""
         try:
             pychkt = PyCheckout(
-                repo_path=os.getcwd(),
+                repo_path=Path.cwd(),
                 use_tui=True,
             )
             if delete:
@@ -138,7 +145,7 @@ if __name__ == "__main__":
                 pychkt.checkout(
                     branch_name=branch_name,
                 )
-        except Exception as exc:
+        except PyCheckoutError as exc:
             console = Console()
             console.print(f"[bold red]{exc}[/bold red]")
             sys.exit(1)
