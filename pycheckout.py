@@ -1,64 +1,104 @@
-import argparse
 import sys
-import pathlib
+from pathlib import Path
 
-from pygit2 import Repository, GitError
+from pygit2 import init_repository
 from pygit2.enums import BranchType
+from prompt_toolkit.shortcuts import choice
+from prompt_toolkit.formatted_text import HTML
+from prompt_toolkit.styles import Style
 
-class GitTuiError(Exception):
+
+class PyCheckoutError(Exception):
     """
-    Generic Error for git-tui script
+    Exception to be raised by PyCheckout class
     """
 
-class GitTui:
-    # NOTE: consider using os.getcwd instead of "."
-    def __init__(self, repo_path: str | pathlib.Path = "."):
-        self.repo = self.__init_repo(repo_path=repo_path)
+class PyCheckout:
+    def __init__(
+        self,
+        repo_path: str | None = None,
+        use_tui: bool = True
+    ):
+        self.repository = repo_path
+        self.use_tui = use_tui
 
-    def __init_repo(self, repo_path: str | pathlib.Path) -> Repository:
-        try:
-            # When directory is not a git repo: _pygit2.GitError: Repository not found at /home
-            # When directory doesn't exist: _pygit2.GitError: Repository not found at /home/bumbum
-            # When user doesn't have permission to the directory: OSError: /root/git-tui: failed to resolve path '/root/git-tui': Permission denied
-            return Repository(path=repo_path)
-        except (OSError, GitError) as exc:
-            raise GitTuiError(f'Failed to load repository: {exc}') from exc
+    @property
+    def repository(self) -> str | None:
+        if self._repository:
+            return str(Path(self._repository.path).parent.absolute())
+        return None
 
-    def checkout(self, branch: str | None):
-        pass
-
-    def delete(self, branch: str | None):
-        if branch:
-            branch_object = self.repo.lookup_branch(branch, BranchType.LOCAL)
-            if not branch_object:
-                raise GitTuiError(f'Branch "{branch}" was not found')
-            if branch_object.is_checked_out():
-                raise GitTuiError(f'Cannot delete branch "{branch}" as we are currently checked out from it')
-
-def main(
-    branch: str | None,
-    repo_path: str | pathlib.Path,
-    delete: bool,
-):
-    try:
-        gt = GitTui(repo_path=repo_path)
-        if delete:
-            gt.delete(branch=branch)
+    @repository.setter
+    def repository(self, repo_path: str | None):
+        if not repo_path:
+            self._repository = None
         else:
-            gt.checkout(branch=branch)
-    except GitTuiError as exc:
-        print(exc, file=sys.stderr)
-        sys.exit(1)
+            try:
+                self._repository = init_repository(repo_path)
+            except Exception as exc:
+                raise PyCheckoutError(f'Failed to initialize repository under path "{repo_path}"') from exc
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("branch", nargs="?", default=None, help="Branch which either should be deleted or checked out to, if not provided, the user will be able to choose the branch")
-    parser.add_argument("-r", "--repo-path", default=".", help="Path to the GIT repository, default is the current directory")
-    parser.add_argument("-d", "--delete", action="store_true", help="Should provided branch be deleted")
-    args = parser.parse_args()
+    @property
+    def local_branches(self) -> list[str]:
+        if not self._repository:
+            raise PyCheckoutError('Cannot list local branches without initialized repository')
+        return list(self._repository.branches.local)
 
-    main(
-        branch=args.branch,
-        repo_path=pathlib.Path(args.repo_path),
-        delete=args.delete,
-    )
+    @property
+    def checked_out_branch(self) -> str:
+        if not self._repository:
+            raise PyCheckoutError('Cannot get currently checked out branch without initialized repository')
+        return self._repository.head.shorthand
+
+    def _get_branch_name_from_tui(self) -> str:
+        if not self.use_tui:
+            raise PyCheckoutError('Cannot get branch from user with TUI mode disabled')
+        if not self._repository:
+            raise PyCheckoutError('Cannot use TUI mode without initialized repository')
+        try:
+            style = Style.from_dict({
+                'current-branch': 'fg:#2ecc71 bold'
+            })
+            branch_name = choice(
+                message="Choose a branch:",
+                options = [
+                    (br, HTML(f'<current-branch>* {br}</current-branch>'))
+                    if br == self.checked_out_branch
+                    else (br, br)
+                    for br in self.local_branches
+                ],
+                style=style,
+            )
+            return branch_name
+        except KeyboardInterrupt:
+            sys.exit(0)
+
+    def checkout(self, branch_name: str | None = None):
+        if not self._repository:
+            raise PyCheckoutError('Cannot checkout to a branch without iniatialized repository')
+        if not branch_name and self.use_tui is False:
+            raise PyCheckoutError('Branch name must be provided for checkout if TUI mode is disabled')
+        branch_name = branch_name if branch_name else self._get_branch_name_from_tui()
+        branch_obj = self._repository.lookup_branch(
+            branch_name,
+            BranchType.LOCAL,
+        )
+        if not branch_obj:
+            raise PyCheckoutError(f'Branch "{branch_name}" was not found locally for the repository "{self.repository}"')
+        self._repository.checkout(branch_obj)
+
+    def delete_branch(self, branch_name: str | None = None):
+        if not self._repository:
+            raise PyCheckoutError('Cannot delete branch without initialized repository')
+        if not branch_name and self.use_tui is False:
+            raise PyCheckoutError('Branch name must be provided for delete if TUI mode is disabled')
+        branch_name = branch_name if branch_name else self._get_branch_name_from_tui()
+        if branch_name == self.checked_out_branch:
+            raise PyCheckoutError('Cannot delete branch from which the repository is currently checked out')
+        branch_obj = self._repository.lookup_branch(
+            branch_name,
+            BranchType.LOCAL,
+        )
+        if not branch_obj:
+            raise PyCheckoutError(f'Branch "{branch_name}" was not found locally for the repository "{self.repository}"')
+        branch_obj.delete()
