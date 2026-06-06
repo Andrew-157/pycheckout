@@ -19,6 +19,7 @@ dev = [
 
 [tool.ruff]
 target-version = "py314"
+extend-exclude = ["tests"]
 
 line-length = 120
 indent-width = 4
@@ -52,4 +53,10 @@ ignore = [
     "E501",
     "E731",
     "PLW1510",
+]
+
+[tool.ty.src]
+exclude = [
+    ".git/**",
+    "tests/**",
 ]

@@ -5,7 +5,7 @@ from typing import Annotated
 from prompt_toolkit.formatted_text import HTML
 from prompt_toolkit.shortcuts import choice
 from prompt_toolkit.styles import Style
-from pygit2 import init_repository
+from pygit2 import discover_repository, init_repository
 from pygit2.enums import BranchType
 from rich.console import Console
 
@@ -34,6 +34,8 @@ class PyCheckout:
         if not repo_path:
             self._repository = None
         else:
+            if not discover_repository(repo_path):
+                raise PyCheckoutError(f'Git repository not found at "{repo_path}"')
             try:
                 self._repository = init_repository(repo_path)
             except Exception as exc:
