@@ -5,7 +5,7 @@ from typing import Annotated
 from prompt_toolkit.formatted_text import HTML
 from prompt_toolkit.shortcuts import choice
 from prompt_toolkit.styles import Style
-from pygit2 import discover_repository, init_repository
+from pygit2 import Commit, discover_repository, init_repository
 from pygit2.enums import BranchType
 from rich.console import Console
 
@@ -82,13 +82,22 @@ class PyCheckout:
         if not branch_name and self.use_tui is False:
             raise PyCheckoutError('Branch name must be provided for checkout if TUI mode is disabled')
         branch_name = branch_name if branch_name else self._get_branch_name_from_tui()
-        branch_obj = self._repository.lookup_branch(
+        local_branch_obj = self._repository.lookup_branch(
             branch_name,
             BranchType.LOCAL,
         )
-        if not branch_obj:
-            raise PyCheckoutError(f'Branch "{branch_name}" was not found locally for the repository "{self.repository}"')
-        self._repository.checkout(branch_obj)
+        if not local_branch_obj:
+            self._repository.remotes['origin'].fetch()
+            remote_branch_obj = self._repository.lookup_branch(
+                f"origin/{branch_name}",
+                BranchType.REMOTE,
+            )
+            if not remote_branch_obj:
+                raise PyCheckoutError(f'Branch "{branch_name}" not found locally or remotely for the repository "{self.repository}"')
+            target_commit = remote_branch_obj.peel(Commit)
+            local_branch_obj = self._repository.branches.local.create(branch_name, target_commit)
+            local_branch_obj.upstream = remote_branch_obj
+        self._repository.checkout(local_branch_obj)
 
     def delete_branch(self, branch_name: str | None = None):
         if not self._repository:
